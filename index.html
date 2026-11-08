@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Архитектор ИИ — Симулятор создателя нейросетей</title>
+
+<!-- VK Bridge для VK Mini Apps -->
+<script src="https://vk.com/js/api/bridge.js"></script>
+
+<style>
+:root {
+  --vk-blue: #0077FF;
+  --vk-blue-dark: #005BBB;
+  --vk-blue-light: #E6F3FF;
+  --vk-bg: #EBEDF0;
+  --vk-card: #FFFFFF;
+  --vk-text: #2C2D2E;
+  --vk-muted: #818C99;
+  --vk-border: #DCE1E6;
+  --vk-green: #4BB34B;
+  --vk-red: #E64646;
+  --vk-orange: #FF9800;
+  --vk-purple: #7B61FF;
+  --vk-gold: #FFB74D;
+  --shadow: 0 2px 8px rgba(0,0,0,.06);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+  --radius: 14px;
+  --sidebar-w: 240px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--vk-bg);
+  color: var(--vk-text);
+  overflow-x: hidden;
+}
+
+button { font-family: inherit; }
+
+/* ============ SPLASH SCREEN ============ */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0077FF 0%, #00AAFF 50%, #7B61FF 100%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.splash.hidden { display: none; }
+
+.splash-content {
+  max-width: 420px;
+  width: 100%;
+  animation: splashIn .6s ease;
+}
+
+@keyframes splashIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.splash-logo {
+  font-size: 80px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.2));
+}
+
+.splash h1 {
+  font-size: 42px;
+  margin: 0 0 8px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.splash-sub {
+  font-size: 16px;
+  opacity: .9;
+  margin-bottom: 30px;
+}
+
+.splash-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform .15s;
+}
+
+.splash-btn:active { transform: scale(.97); }
+
+.splash-btn.primary {
+  background: white;
+  color: var(--vk-blue);
+}
+
+.splash-btn.secondary {
+  background: rgba(255,255,255,.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,.3);
+}
+
+.splash-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.splash-version {
+  margin-top: 20px;
+  font-size: 12px;
+  opacity: .7;
+}
+
+/* ============ TUTORIAL ============ */
+.tutorial {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 9000;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px;
+}
+
+.tutorial.active { display: flex; }
+
+.tutorial-box {
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp .3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.tutorial-step-num {
+  display: inline-block;
+  background: var(--vk-blue);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.tutorial-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--vk-text);
+}
+
+.tutorial-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vk-muted);
+  margin-bottom: 16px;
+}
+
+.tutorial-progress {
+  height: 4px;
+  background: var(--vk-border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.tutorial-progress > div {
+  height: 100%;
+  background: var(--vk-blue);
+  transition: width .3s;
+}
+
+.tutorial-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.tutorial-actions button {
+  flex: 1;
+}
+
+.highlight {
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 0 4px rgba(0,119,255,.4) !important;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(0,119,255,.4); }
+  50% { box-shadow: 0 0 0 8px rgba(0,119,255,.2); }
+}
+
+/* ============ APP LAYOUT ============ */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: white;
+  border-right: 1px solid var(--vk-border);
+  padding: 16px 10px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 20px;
+  border-bottom: 1px solid var(--vk-border);
+  margin-bottom: 12px;
+}
+
+.sidebar-logo-icon {
+  font-size: 28px;
+}
+
+.sidebar-logo-text {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--vk-blue);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--vk-text);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background .15s;
+  margin-bottom: 2px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover {
+  background: var(--vk-bg);
+}
+
+.nav-item.active {
+  background: var(--vk-blue-light);
+  color: var(--vk-blue);
+  font-weight: 600;
+}
+
+.nav-item-icon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.nav-divider {
+  height: 1px;
+  background: var(--vk-border);
+  margin: 10px 12px;
+}
+
+.nav-section-title {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  color: var(--vk-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-weight: 700;
+}
+
+/* ============ MAIN ============ */
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  padding: 20px;
+  min-width: 0;
+}
+
+.header {
+  background: linear-gradient(135deg, #0077FF, #00AAFF);
+  color: white;
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.small-btn {
+  border: none;
+  border-radius: 9px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: rgba(255,255,255,.2);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background .15s;
+}
+
+.small-btn:hover { background: rgba(255,255,255,.3); }
+
+.epoch-row {
+  margin-top: 12px;
+  font-size: 14px;
+  opacity: .95;
+}
+
+.progress {
+  height: 8px;
+  background: rgba(255,255,255,.25);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress > div {
+  height: 100%;
+  background: white;
+  transition: width .3s;
+}
+
+/* ============ STATS ============ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  background: white;
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.stat-icon { font-size: 22px; }
+.stat-value {
+  font-size: 19px;
+  font-weight: 750;
+  color: var(--vk-blue);
+  margin-top: 2px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--vk-muted);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+/* ============ PAGES ============ */
+.page { display: none; }
+.page.active { display: block; }
+
+.panel {
+  background: white;
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 750;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+  width: 100%;
+  border: none;
+  background: var(--vk-blue);
+  color: white;
+  padding: 12px 14px;
+  border-radius: 11px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  transition: background .15s, transform .1s;
+}
+
+.btn:active:not(:disabled) { transform: scale(.98); }
+.btn:hover:not(:disabled) { background: var(--vk-blue-dark); }
+.btn:disabled { background: #E5E7EB; color: #9AA1AA; cursor: not-allowed; }
+.btn.green { background: var(--vk-green); }
+.btn.green:hover:not(:disabled) { background: #3D9B3D; }
+.btn.orange { background: var(--vk-orange); }
+.btn.orange:hover:not(:disabled) { background: #E68900; }
+.btn.red { background: var(--vk-red); }
+.btn.red:hover:not(:disabled) { background: #C73838; }
+.btn.purple { background: var(--vk-purple); }
+.btn.purple:hover:not(:disabled) { background: #6447E6; }
+.btn.gold { background: linear-gradient(135deg, #FFB74D, #FF9800); }
+.btn.gold:hover:not(:disabled) { background: linear-gradient(135deg, #FFA726, #F57C00); }
+.btn.secondary { background: #EEF1F5; color: var(--vk-text); }
+.btn.secondary:hover:not(:disabled) { background: #DFE4EA; }
+.btn small { font-weight: 500; opacity: .9; text-align: right; }
+
+/* ============ CARDS ============ */
+.info-card {
+  border: 1px solid var(--vk-border);
+  border-radius: 13px;
+  padding: 14px;
+  background: #FAFBFC;
+}
+
+.info-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.info-card p {
+  margin: 5px 0;
+  color: var(--vk-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--vk-blue-light);
+  color: var(--vk-blue);
+  font-size: 12px;
+  font-weight: 650;
+  margin: 2px 3px 2px 0;
+}
+
+.badge.green { background: #E8F7E8; color: var(--vk-green); }
+.badge.orange { background: #FFF2D9; color: #B76A00; }
+.badge.red { background: #FFE5E5; color: var(--vk-red); }
+.badge.purple { background: #F0EBFF; color: var(--vk-purple); }
+.badge.gold { background: #FFF4E0; color: #B76A00; }
+
+/* ============ RESEARCH ============ */
+.research-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+}
+
+.research {
+  border: 1px solid var(--vk-border);
+  border-radius: 13px;
+  padding: 13px;
+  background: #FAFBFC;
+  transition: border-color .2s;
+}
+
+.research.unlocked { border-color: var(--vk-green); background: #F0FFF0; }
+.research.available { border-color: var(--vk-blue); background: var(--vk-blue-light); cursor: pointer; }
+.research.locked { opacity: .6; }
+
+.research-title { font-weight: 750; margin-bottom: 5px; font-size: 15px; }
+.research-desc { color: var(--vk-muted); font-size: 13px; line-height: 1.35; margin-bottom: 8px; }
+
+/* ============ QUEST ============ */
+.quest {
+  border: 1px solid var(--vk-border);
+  border-radius: 13px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #FAFBFC;
+}
+
+.quest-title { font-weight: 750; margin-bottom: 5px; }
+.quest-desc { color: var(--vk-muted); font-size: 13px; line-height: 1.4; margin-bottom: 8px; }
+
+/* ============ LOG ============ */
+.log {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #F8F9FA;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.log-entry { padding: 6px 4px; border-bottom: 1px solid #E6E9ED; }
+.log-entry:last-child { border-bottom: none; }
+.log-entry.success { color: var(--vk-green); }
+.log-entry.warning { color: #B76A00; }
+.log-entry.error { color: var(--vk-red); }
+.log-entry.info { color: var(--vk-blue); }
+
+/* ============ DAILY REWARDS ============ */
+.daily-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.daily-cell {
+  aspect-ratio: 1;
+  border: 2px solid var(--vk-border);
+  border-radius: 12px;
+  padding: 8px;
+  text-align: center;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  position: relative;
+}
+
+.daily-cell.claimed {
+  background: var(--vk-green);
+  color: white;
+  border-color: var(--vk-green);
+}
+
+.daily-cell.today {
+  border-color: var(--vk-blue);
+  background: var(--vk-blue-light);
+  animation: pulse 2s infinite;
+  cursor: pointer;
+}
+
+.daily-cell.locked { opacity: .5; }
+
+.daily-day { font-weight: 700; font-size: 11px; }
+.daily-reward { font-size: 20px; }
+
+/* ============ SHOP ============ */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.shop-item {
+  border: 1px solid var(--vk-border);
+  border-radius: 13px;
+  padding: 14px;
+  background: linear-gradient(135deg, #FFF9E6, #FFFFFF);
+}
+
+.shop-item h3 { margin: 0 0 6px; font-size: 15px; }
+.shop-item p { margin: 4px 0; color: var(--vk-muted); font-size: 13px; }
+
+.boost-active {
+  background: linear-gradient(135deg, #FFF4E0, #FFE8B8);
+  border: 1px solid var(--vk-gold);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+/* ============ LEADERBOARD ============ */
+.leader-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--vk-border);
+}
+
+.leader-row:last-child { border-bottom: none; }
+
+.leader-row.me {
+  background: var(--vk-blue-light);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.leader-rank {
+  font-size: 18px;
+  font-weight: 800;
+  width: 32px;
+  text-align: center;
+  color: var(--vk-muted);
+}
+
+.leader-row:nth-child(1) .leader-rank { color: #FFB74D; }
+.leader-row:nth-child(2) .leader-rank { color: #B0BEC5; }
+.leader-row:nth-child(3) .leader-rank { color: #A1887F; }
+
+.leader-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--vk-blue-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.leader-info { flex: 1; }
+.leader-name { font-weight: 600; font-size: 14px; }
+.leader-sub { font-size: 12px; color: var(--vk-muted); }
+.leader-score { font-weight: 700; color: var(--vk-blue); font-size: 15px; }
+
+/* ============ ADS ============ */
+.ad-banner {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 14px;
+  border-radius: var(--radius);
+  text-align: center;
+  margin-bottom: 14px;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+}
+
+.ad-banner-small {
+  background: #F8F9FA;
+  border: 1px dashed var(--vk-border);
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  color: var(--vk-muted);
+  font-size: 12px;
+  margin: 10px 0;
+}
+
+/* ============ MODAL ============ */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 8000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal.active { display: flex; }
+
+.modal-box {
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn .25s ease;
+}
+
+@keyframes modalIn {
+  from { transform: scale(.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-title {
+  color: var(--vk-blue);
+  font-weight: 800;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.modal-text {
+  white-space: pre-line;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  color: var(--vk-text);
+}
+
+.modal-actions { display: flex; gap: 10px; }
+.modal-actions button { flex: 1; }
+
+/* ============ TOAST ============ */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 7000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: white;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 220px;
+  max-width: 320px;
+  animation: toastIn .3s ease;
+  border-left: 4px solid var(--vk-blue);
+}
+
+.toast.success { border-left-color: var(--vk-green); }
+.toast.warning { border-left-color: var(--vk-orange); }
+.toast.error { border-left-color: var(--vk-red); }
+
+@keyframes toastIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ============ EVENT BANNER ============ */
+.event {
+  display: none;
+  background: linear-gradient(135deg, #FF9800, #FF5C5C);
+  color: white;
+  padding: 14px;
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.event.active { display: block; }
+.event-title { font-weight: 700; margin-bottom: 5px; }
+
+/* ============ MOBILE ============ */
+@media (max-width: 950px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .research-grid { grid-template-columns: repeat(2, 1fr); }
+  .shop-grid { grid-template-columns: 1fr; }
+  .daily-grid { grid-template-columns: repeat(7, 1fr); }
+}
+
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    height: 64px;
+    border-right: none;
+    border-top: 1px solid var(--vk-border);
+    padding: 6px 4px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    overflow: visible;
+  }
+
+  .sidebar-logo,
+  .nav-divider,
+  .nav-section-title { display: none; }
+
+  .nav-item {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 4px;
+    font-size: 10px;
+    margin: 0;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .nav-item-icon { font-size: 22px; }
+
+  .main {
+    margin-left: 0;
+    padding: 12px 12px 80px;
+  }
+
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .research-grid { grid-template-columns: 1fr; }
+  .daily-grid { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .daily-cell { font-size: 10px; padding: 6px 2px; }
+  .daily-reward { font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ============ SPLASH SCREEN ============ -->
+<div class="splash" id="splash">
+  <div class="splash-content">
+    <div class="splash-logo">🤖</div>
+    <h1>Архитектор ИИ</h1>
+    <div class="splash-sub">Создай свой искусственный интеллект<br>от скрипта до сингулярности</div>
+    <button class="splash-btn primary" id="btnContinue" onclick="continueGame()">▶ Продолжить</button>
+    <button class="splash-btn secondary" onclick="startNewGame()">✨ Новая игра</button>
+    <div class="splash-version">v4.0 · VK Mini Apps Ready</div>
+  </div>
+</div>
+
+<!-- ============ TUTORIAL ============ -->
+<div class="tutorial" id="tutorial">
+  <div class="tutorial-box">
+    <div class="tutorial-step-num" id="tutorialStepNum">Шаг 1 из 10</div>
+    <div class="tutorial-title" id="tutorialTitle"></div>
+    <div class="tutorial-text" id="tutorialText"></div>
+    <div class="tutorial-progress">
+      <div id="tutorialBar" style="width: 10%"></div>
+    </div>
+    <div class="tutorial-actions">
+      <button class="btn secondary" onclick="skipTutorial()">Пропустить</button>
+      <button class="btn" id="tutorialNextBtn" onclick="nextTutorialStep()">Далее</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🤖</div>
+      <div class="sidebar-logo-text">Архитектор ИИ</div>
+    </div>
+
+    <div class="nav-section-title">Основное</div>
+    <button class="nav-item active" data-tab="home" onclick="switchPage('home')">
+      <span class="nav-item-icon">🏠</span><span>Главная</span>
+    </button>
+    <button class="nav-item" data-tab="lab" onclick="switchPage('lab')">
+      <span class="nav-item-icon">🧪</span><span>Лаборатория</span>
+    </button>
+    <button class="nav-item" data-tab="research" onclick="switchPage('research')">
+      <span class="nav-item-icon">🧬</span><span>Исследования</span>
+    </button>
+    <button class="nav-item" data-tab="quests" onclick="switchPage('quests')">
+      <span class="nav-item-icon">📦</span><span>Квесты</span>
+    </button>
+
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Соревнования</div>
+    <button class="nav-item" data-tab="pvp" onclick="switchPage('pvp')">
+      <span class="nav-item-icon">⚔️</span><span>PvP Арена</span>
+    </button>
+    <button class="nav-item" data-tab="leaders" onclick="switchPage('leaders')">
+      <span class="nav-item-icon">🏆</span><span>Лидеры</span>
+    </button>
+
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Прогресс</div>
+    <button class="nav-item" data-tab="daily" onclick="switchPage('daily')">
+      <span class="nav-item-icon">🎁</span><span>Ежедневные</span>
+    </button>
+    <button class="nav-item" data-tab="shop" onclick="switchPage('shop')">
+      <span class="nav-item-icon">💎</span><span>Магазин</span>
+    </button>
+    <button class="nav-item" data-tab="achievements" onclick="switchPage('achievements')">
+      <span class="nav-item-icon">🎖️</span><span>Достижения</span>
+    </button>
+    <button class="nav-item" data-tab="log" onclick="switchPage('log')">
+      <span class="nav-item-icon">📜</span><span>Журнал</span>
+    </button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="header">
+      <div class="header-top">
+        <div>
+          <h2 id="pageTitle">🏠 Главная</h2>
+          <div class="epoch-row" id="epochName">Эпоха</div>
+        </div>
+        <div class="header-actions">
+          <button class="small-btn" onclick="saveGame()">💾</button>
+          <button class="small-btn" onclick="resetGame()">🗑️</button>
+        </div>
+      </div>
+      <div class="progress"><div id="epochBar"></div></div>
+      <div class="epoch-row" id="epochHint" style="margin-top:6px; font-size:12px;"></div>
+    </div>
+
+    <div class="event" id="eventBanner">
+      <div class="event-title" id="eventTitle"></div>
+      <div id="eventDesc"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat"><div class="stat-icon">💵</div><div class="stat-value" id="money">0</div><div class="stat-label">Деньги</div></div>
+      <div class="stat"><div class="stat-icon">📊</div><div class="stat-value" id="data">0</div><div class="stat-label">Данные</div></div>
+      <div class="stat"><div class="stat-icon">🧠</div><div class="stat-value" id="model">0</div><div class="stat-label">Модель</div></div>
+      <div class="stat"><div class="stat-icon">🔬</div><div class="stat-value" id="research">0</div><div class="stat-label">Наука</div></div>
+      <div class="stat"><div class="stat-icon">⭐</div><div class="stat-value" id="rep">0</div><div class="stat-label">Репутация</div></div>
+      <div class="stat"><div class="stat-icon">👥</div><div class="stat-value" id="users">0</div><div class="stat-label">Клиенты</div></div>
+      <div class="stat"><div class="stat-icon">📈</div><div class="stat-value" id="netIncome">0</div><div class="stat-label">$/сек</div></div>
+    </div>
+
+    <!-- AD BANNER -->
+    <div class="ad-banner" id="adBanner">
+      📢 Рекламный баннер · Для VK: VKWebAppShowNativeAds · Для веба: РСЯ blockId
+    </div>
+
+    <!-- ============ PAGE: HOME ============ -->
+    <div class="page active" id="page-home">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">⚡ Быстрые действия</div>
+          <button class="btn" onclick="switchPage('lab')">🧪 В лабораторию</button>
+          <button class="btn green" onclick="switchPage('quests')">📦 К квестам</button>
+          <button class="btn purple" onclick="switchPage('research')">🧬 Исследовать</button>
+          <button class="btn gold" onclick="switchPage('daily')">🎁 Ежедневный бонус</button>
+        </div>
+        <div class="panel">
+          <div class="panel-title">📊 Статус компании</div>
+          <div id="homeStatus"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">💡 Подсказка дня</div>
+        <div id="homeTip" style="color: var(--vk-muted); line-height: 1.5;"></div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: LAB ============ -->
+    <div class="page" id="page-lab">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">⚡ Действия разработчика</div>
+          <div id="labActions"></div>
+          <hr style="border:none; border-top:1px solid var(--vk-border); margin:12px 0;">
+          <div id="trainingBox"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">🏗️ Инфраструктура</div>
+          <div id="buildings"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: RESEARCH ============ -->
+    <div class="page" id="page-research">
+      <div class="panel">
+        <div class="panel-title">🧬 Дерево исследований</div>
+        <div class="research-grid" id="researchTree"></div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: QUESTS ============ -->
+    <div class="page" id="page-quests">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">📦 Доступные контракты</div>
+          <div id="questTimer" class="badge"></div>
+          <button class="btn secondary" onclick="refreshQuests(true)" style="margin-top:10px;">
+            <span>🔄 Обновить</span>
+            <small>раз в 30 сек</small>
+          </button>
+          <div id="questOffers" style="margin-top:12px;"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">🚧 Активные квесты</div>
+          <div id="activeQuests"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: PVP ============ -->
+    <div class="page" id="page-pvp">
+      <div class="panel">
+        <div class="panel-title">⚔️ PvP-арена ИИ</div>
+        <div id="pvpBox"></div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: LEADERS ============ -->
+    <div class="page" id="page-leaders">
+      <div class="panel">
+        <div class="panel-title">🏆 Таблица лидеров</div>
+        <div style="color:var(--vk-muted); font-size:13px; margin-bottom:12px;">
+          Рейтинг по силе модели. Топ-100 игроков мира.
+        </div>
+        <div id="leaderboard"></div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: DAILY ============ -->
+    <div class="page" id="page-daily">
+      <div class="panel">
+        <div class="panel-title">🎁 Ежедневные награды</div>
+        <div style="color:var(--vk-muted); font-size:13px; margin-bottom:12px;">
+          Заходи каждый день и получай награды. Серия: <b id="loginStreak">0</b> дней.
+        </div>
+        <div class="daily-grid" id="dailyGrid"></div>
+        <button class="btn gold" id="claimDailyBtn" onclick="claimDailyReward()">
+          <span>🎁 Получить награду</span>
+          <small id="claimDailyHint">доступно сегодня</small>
+        </button>
+        <div class="ad-banner-small" style="margin-top:14px;">
+          🎬 Посмотри рекламу — удвой награду
+          <br>
+          <button class="btn orange" style="margin-top:8px; margin-bottom:0;" onclick="watchAdForDoubleDaily()">
+            <span>📺 Смотреть рекламу</span>
+            <small>x2 награда</small>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: SHOP ============ -->
+    <div class="page" id="page-shop">
+      <div class="panel">
+        <div class="panel-title">💎 Магазин бустов</div>
+        <div id="activeBoosts"></div>
+        <div class="shop-grid" id="shopGrid"></div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: ACHIEVEMENTS ============ -->
+    <div class="page" id="page-achievements">
+      <div class="panel">
+        <div class="panel-title">🎖️ Достижения</div>
+        <div id="achievements"></div>
+      </div>
+    </div>
+
+    <!-- ============ PAGE: LOG ============ -->
+    <div class="page" id="page-log">
+      <div class="panel">
+        <div class="panel-title">📜 Журнал событий</div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-text" id="modalText"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Закрыть</button>
+      <button class="btn" id="modalAction">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ============================================================
+// Архитектор ИИ v4.0 — VK Mini Apps Ready
+// ============================================================
+
+const SAVE_KEY = 'ai_tycoon_v4_save';
+const $ = id => document.getElementById(id);
+const now = () => Date.now();
+
+// ============ VK BRIDGE INIT ============
+let vkBridgeReady = false;
+try {
+  if (typeof VKBridge !== 'undefined') {
+    VKBridge.send('VKWebAppInit');
+    VKBridge.send('VKWebAppSetViewSettings', {
+      status_bar_style: 'light',
+      action_bar_color: '#0077FF'
+    });
+    vkBridgeReady = true;
+    console.log('VK Bridge initialized');
+  }
+} catch (e) {
+  console.warn('VK Bridge not available:', e);
+}
+
+// ============ DEFAULT STATE ============
+function defaultState() {
+  return {
+    version: 4,
+    money: 250,
+    data: 20,
+    model: 0,
+    research: 0,
+    rep: 0,
+    users: 0,
+
+    gpu: 1,
+    interns: 0,
+    servers: 0,
+    office: 1,
+
+    gpuCost: 350,
+    internCost: 600,
+    serverCost: 1800,
+    officeCost: 5000,
+
+    unlocked: ['basic_ml'],
+    achievements: [],
+
+    training: null,
+    apiCooldownUntil: 0,
+    researchCooldownUntil: 0,
+    adCooldownUntil: 0,
+
+    pvpRating: 1000,
+    pvpWins: 0,
+    pvpLosses: 0,
+    pvpCooldownUntil: 0,
+    rival: null,
+
+    questOffers: [],
+    activeQuests: [],
+    nextQuestRefresh: 0,
+
+    epoch: 0,
+    nextEventAt: now() + 25000,
+    lastTick: now(),
+
+    // v4 features
+    tutorialDone: false,
+    tutorialStep: 0,
+    lastLoginDate: null,
+    loginStreak: 0,
+    dailyClaimedToday: false,
+    boosts: {}, // { id: expiresAt }
+    logs: []
+  };
+}
+
+let state = defaultState();
+
+// ============ CONSTANTS ============
+const epochs = [
+  { name: '🏠 Гаражный разработчик', need: 0 },
+  { name: '🧪 Маленькая ML-лаборатория', need: 100 },
+  { name: '🏢 AI-стартап', need: 1000 },
+  { name: '🏭 Компания уровня продукта', need: 10000 },
+  { name: '🌐 AI-корпорация', need: 100000 },
+  { name: '🚀 Техгигант', need: 1000000 },
+  { name: '👑 Лаборатория AGI', need: 10000000 }
+];
+
+const researchList = [
+  { id: 'basic_ml', name: 'Базовый ML', desc: 'Стартовая технология.', cost: 0, req: [] },
+  { id: 'data_cleaning', name: 'Очистка данных', desc: '+50% к сбору данных.', cost: 10, req: ['basic_ml'] },
+  { id: 'deep_learning', name: 'Deep Learning', desc: 'Обучение x1.7.', cost: 25, req: ['basic_ml'] },
+  { id: 'nlp', name: 'NLP', desc: 'Открывает текстовые контракты.', cost: 40, req: ['deep_learning'] },
+  { id: 'vision', name: 'Computer Vision', desc: 'Открывает визуальные контракты.', cost: 40, req: ['deep_learning'] },
+  { id: 'audio', name: 'Audio AI', desc: 'Открывает голосовые контракты.', cost: 55, req: ['deep_learning'] },
+  { id: 'gpu_kernels', name: 'GPU-ядра', desc: 'GPU эффективнее на 50%.', cost: 60, req: ['deep_learning'] },
+  { id: 'synthetic_data', name: 'Синтетические данные', desc: 'Сбор данных x2.', cost: 75, req: ['data_cleaning'] },
+  { id: 'vector_db', name: 'Векторные базы', desc: 'Квесты быстрее.', cost: 90, req: ['nlp'] },
+  { id: 'security', name: 'Безопасность', desc: 'Защита от атак.', cost: 120, req: ['basic_ml'] },
+  { id: 'transformers', name: 'Трансформеры', desc: 'Обучение x2.3.', cost: 120, req: ['deep_learning', 'gpu_kernels'] },
+  { id: 'mlops', name: 'MLOps', desc: 'API прибыльнее.', cost: 160, req: ['gpu_kernels'] },
+  { id: 'distributed', name: 'Распределённое обучение', desc: 'Серверы сильнее.', cost: 180, req: ['gpu_kernels'] },
+  { id: 'quantization', name: 'Квантизация', desc: 'API дешевле обслуживать.', cost: 180, req: ['gpu_kernels'] },
+  { id: 'rlhf', name: 'RLHF', desc: 'Больше репутации.', cost: 220, req: ['transformers'] },
+  { id: 'edge_ai', name: 'Edge AI', desc: 'Бонус к API и PvP.', cost: 220, req: ['quantization'] },
+  { id: 'automl', name: 'AutoML', desc: 'Стажёры эффективнее.', cost: 250, req: ['deep_learning', 'data_cleaning'] },
+  { id: 'multimodal', name: 'Мультимодальность', desc: 'Объединение всех модальностей.', cost: 300, req: ['nlp', 'vision', 'audio'] },
+  { id: 'alignment', name: 'Alignment', desc: 'Меньше вредных событий.', cost: 350, req: ['rlhf', 'security'] },
+  { id: 'moe', name: 'Mixture of Experts', desc: 'Скачок силы обучения.', cost: 400, req: ['transformers', 'distributed'] },
+  { id: 'agents', name: 'AI-агенты', desc: 'Квесты быстрее.', cost: 500, req: ['transformers', 'vector_db'] },
+  { id: 'curriculum', name: 'Curriculum Learning', desc: 'Обучение x3.', cost: 600, req: ['synthetic_data', 'rlhf'] },
+  { id: 'agi_core', name: 'AGI Core', desc: 'Финальная ветка. Обучение x5.', cost: 1500, req: ['agents', 'alignment', 'multimodal'] },
+  { id: 'singularity', name: 'Сингулярность', desc: 'Эндгейм. Огромный буст.', cost: 5000, req: ['agi_core', 'curriculum', 'moe'] }
+];
+
+const questTemplates = [
+  { id: 'label_data', title: 'Разметить данные', desc: 'Простой стартовый контракт.', req: { model: 0, data: 0, office: 1 }, duration: 20, reward: { money: 300, research: 5, rep: 1 } },
+  { id: 'vk_chatbot', title: 'Чат-бот для VK', desc: 'Бот для сообщества.', req: { model: 60, data: 40, office: 1, tech: 'nlp' }, duration: 35, reward: { money: 900, research: 10, rep: 3 } },
+  { id: 'recommendations', title: 'Рекомендации для магазина', desc: 'Персональные рекомендации.', req: { model: 180, data: 100, office: 1 }, duration: 50, reward: { money: 2200, research: 18, rep: 5 } },
+  { id: 'image_moderation', title: 'Модерация изображений', desc: 'Фильтрация картинок.', req: { model: 350, data: 180, office: 2, tech: 'vision' }, duration: 65, reward: { money: 4500, research: 30, rep: 8 } },
+  { id: 'voice_assistant', title: 'Голосовой ассистент', desc: 'Голосовой интерфейс.', req: { model: 600, data: 260, office: 2, tech: 'audio' }, duration: 80, reward: { money: 7500, research: 45, rep: 10 } },
+  { id: 'bank_scoring', title: 'Скоринг для банка', desc: 'Финансовая модель.', req: { model: 1200, data: 450, office: 3, tech: 'security' }, duration: 100, reward: { money: 16000, research: 80, rep: 16 } },
+  { id: 'rag_enterprise', title: 'RAG-система', desc: 'Поиск по документам.', req: { model: 2500, data: 700, office: 3, tech: 'vector_db' }, duration: 120, reward: { money: 30000, research: 130, rep: 22 } },
+  { id: 'multi_product', title: 'Мультимодальный продукт', desc: 'Текст+изображения+звук.', req: { model: 7000, data: 1500, office: 4, tech: 'multimodal' }, duration: 160, reward: { money: 90000, research: 260, rep: 40 } },
+  { id: 'agent_platform', title: 'Платформа AI-агентов', desc: 'Автоматизация процессов.', req: { model: 20000, data: 3500, office: 5, tech: 'agents' }, duration: 220, reward: { money: 250000, research: 600, rep: 80 } },
+  { id: 'agi_contract', title: 'Госконтракт на AGI', desc: 'Опасный и престижный.', req: { model: 100000, data: 10000, office: 6, tech: 'agi_core' }, duration: 320, reward: { money: 1500000, research: 2200, rep: 250 } }
+];
+
+const achievementsList = [
+  { id: 'first_model', name: '🧠 Первая модель', check: () => state.model >= 10 },
+  { id: 'first_api', name: '🔌 Первый API', check: () => state.users >= 1 },
+  { id: 'first_server', name: '🖧 Первый сервер', check: () => state.servers >= 1 },
+  { id: 'first_intern', name: '👨‍💻 Первый стажёр', check: () => state.interns >= 1 },
+  { id: 'startup', name: '🏢 Стартап', check: () => state.model >= 1000 },
+  { id: 'researcher', name: '🔬 Исследователь', check: () => state.unlocked.length >= 6 },
+  { id: 'quest_master', name: '📦 Контрактник', check: () => state.rep >= 50 },
+  { id: 'pvp_win', name: '⚔️ Первая победа', check: () => state.pvpWins >= 1 },
+  { id: 'gpu_lord', name: '🖥️ GPU-повелитель', check: () => state.gpu >= 10 },
+  { id: 'corp', name: '🌐 Корпорация', check: () => state.model >= 100000 },
+  { id: 'agi_path', name: '🚀 Путь к AGI', check: () => hasTech('agi_core') },
+  { id: 'singularity', name: '👑 Сингулярность', check: () => hasTech('singularity') }
+];
+
+const shopItems = [
+  { id: 'boost_code', name: '⚡ x2 Код', desc: 'На 1 час удваивает прирост модели от кликов.', price: 1500, duration: 3600, type: 'codeMult', mult: 2 },
+  { id: 'boost_data', name: '📊 x2 Данные', desc: 'На 1 час удваивает сбор данных.', price: 1500, duration: 3600, type: 'dataMult', mult: 2 },
+  { id: 'boost_research', name: '🔬 x2 Наука', desc: 'На 1 час удваивает исследования.', price: 2000, duration: 3600, type: 'researchMult', mult: 2 },
+  { id: 'boost_train', name: '🚀 x2 Обучение', desc: 'На 1 час удваивает силу обучения.', price: 3000, duration: 3600, type: 'trainMult', mult: 2 },
+  { id: 'instant_money', name: '💰 Мгновенные деньги', desc: '+$5000 прямо сейчас.', price: 2500, instant: true, effect: () => { state.money += 5000; } },
+  { id: 'instant_data', name: '📦 Мгновенные данные', desc: '+500 данных прямо сейчас.', price: 2000, instant: true, effect: () => { state.data += 500; } },
+  { id: 'instant_research', name: '🧪 Мгновенная наука', desc: '+100 очков исследований.', price: 3000, instant: true, effect: () => { state.research += 100; } }
+];
+
+const dailyRewards = [
+  { day: 1, icon: '💵', amount: 500, label: '$500' },
+  { day: 2, icon: '📊', amount: 100, label: '100 данных' },
+  { day: 3, icon: '💵', amount: 1500, label: '$1500' },
+  { day: 4, icon: '🔬', amount: 30, label: '30 науки' },
+  { day: 5, icon: '💵', amount: 3000, label: '$3000' },
+  { day: 6, icon: '📊', amount: 500, label: '500 данных' },
+  { day: 7, icon: '💎', amount: 10000, label: '$10000 + буст' }
+];
+
+const tutorialSteps = [
+  { title: 'Добро пожаловать!', text: 'Ты — программист, который создаёт ИИ с нуля. Твоя цель — дойти до сингулярности. Давай разберёмся, как это работает.', action: null },
+  { title: 'Твои ресурсы', text: 'Вверху ты видишь 7 ресурсов: 💵 деньги, 📊 данные, 🧠 сила модели, 🔬 наука, ⭐ репутация, 👥 клиенты, 📈 доход в секунду.', action: null },
+  { title: 'Первое действие', text: 'Перейди в Лабораторию и нажми "💻 Написать код". Это увеличит силу твоей модели.', action: () => switchPage('lab'), highlight: 'lab' },
+  { title: 'Сбор данных', text: 'Теперь нажми "📊 Собрать данные". Данные нужны для обучения модели.', action: null, highlight: null },
+  { title: 'Обучение модели', text: 'Нажми "🚀 Обучить модель". Обучение тратит данные и деньги, но сильно растит модель.', action: null, highlight: null },
+  { title: 'Покупка GPU', text: 'GPU ускоряет обучение. Купи первый GPU в разделе "Инфраструктура".', action: null, highlight: null },
+  { title: 'Исследования', text: 'Перейди в раздел "🧬 Исследования" и открой новую технологию за очки науки.', action: () => switchPage('research'), highlight: 'research' },
+  { title: 'Квесты', text: 'Выполняй контракты клиентов — это основной способ заработка. Перейди в "📦 Квесты".', action: () => switchPage('quests'), highlight: 'quests' },
+  { title: 'Ежедневные награды', text: 'Заходи каждый день за наградами. Серия дней даёт всё более ценные призы!', action: () => switchPage('daily'), highlight: 'daily' },
+  { title: 'Удачи!', text: 'Теперь ты знаешь основы. Развивай ИИ, побеждай в PvP, открывай достижения. Путь к AGI начинается!', action: null }
+];
+
+const tips = [
+  '💡 Стажёры автоматически собирают данные и пишут код, но требуют зарплату.',
+  '💡 Серверы дают пассивный API-доход, но требуют обслуживания.',
+  '💡 Офис увеличивает лимит стажёров и доходность.',
+  '💡 Обучение требует данных и денег, но даёт большой прирост модели.',
+  '💡 Исследования открывают новые технологии и множители.',
+  '💡 Квесты — основной способ заработка. Выполняй их регулярно.',
+  '💡 PvP требует силу модели от 150. Побеждай для рейтинга и денег.',
+  '💡 Следи за балансом: не трать всё на одно улучшение.',
+  '💡 Ежедневные награды дают ценные призы за серию дней.',
+  '💡 Магазин предлагает временные бусты для ускорения прогресса.'
+];
+
+// ============ SAVE / LOAD ============
+function loadGame() {
+  const base = defaultState();
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return base;
+    const saved = JSON.parse(raw);
+    const merged = Object.assign(base, saved);
+
+    // Миграция и валидация
+    if (!Array.isArray(merged.unlocked)) merged.unlocked = ['basic_ml'];
+    if (!Array.isArray(merged.achievements)) merged.achievements = [];
+    if (!Array.isArray(merged.questOffers)) merged.questOffers = [];
+    if (!Array.isArray(merged.activeQuests)) merged.activeQuests = [];
+    if (!Array.isArray(merged.logs)) merged.logs = [];
+    if (typeof merged.boosts !== 'object' || merged.boosts === null) merged.boosts = {};
+    if (!merged.nextEventAt) merged.nextEventAt = now() + 25000;
+    if (!merged.lastLoginDate) merged.lastLoginDate = null;
+    if (typeof merged.loginStreak !== 'number') merged.loginStreak = 0;
+    if (typeof merged.tutorialStep !== 'number') merged.tutorialStep = 0;
+
+    // Ограничиваем логи
+    if (merged.logs.length > 50) merged.logs = merged.logs.slice(0, 50);
+
+    // Если обучение было в процессе и закончилось — выдаём награду
+    if (merged.training && now() >= merged.training.end) {
+      merged.model += merged.training.reward;
+      merged.research += 3 + merged.gpu * 0.3;
+      merged.training = null;
+    }
+
+    return merged;
+  } catch (e) {
+    console.warn('Save load failed:', e);
+    return base;
+  }
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    return true;
+  } catch (e) {
+    console.warn('Save failed:', e);
+    return false;
+  }
+}
+
+function resetGame() {
+  if (!confirm('Точно сбросить весь прогресс?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  state = defaultState();
+  generateQuestOffers();
+  log('🗑️ Прогресс сброшен.', 'warning');
+  render();
+}
+
+// ============ HELPERS ============
+function hasTech(id) { return state.unlocked.includes(id); }
+
+function fmt(n) {
+  if (!isFinite(n)) return '0';
+  const sign = n < 0 ? '-' : '';
+  n = Math.abs(n);
+  if (n >= 1e12) return sign + (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9) return sign + (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return sign + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return sign + (n / 1e3).toFixed(2) + 'K';
+  return sign + Math.floor(n);
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function getBoostMult(type) {
+  let mult = 1;
+  for (const id in state.boosts) {
+    if (state.boosts[id] > now()) {
+      const item = shopItems.find(x => x.id === id);
+      if (item && item.type === type) mult *= item.mult;
+    }
+  }
+  return mult;
+}
+
+function cleanExpiredBoosts() {
+  const t = now();
+  let changed = false;
+  for (const id in state.boosts) {
+    if (state.boosts[id] <= t) {
+      delete state.boosts[id];
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+// ============ STATS CALCULATION ============
+function getStats() {
+  let dataMult = 1;
+  let trainMult = 1;
+  let codeMult = 1;
+  let researchMult = 1;
+  let apiMult = 1;
+  let pvpAtk = 1;
+  let pvpDef = 1;
+  let questSpeed = 1;
+  let eventShield = 0;
+
+  // Tech bonuses
+  if (hasTech('data_cleaning')) dataMult *= 1.5;
+  if (hasTech('synthetic_data')) dataMult *= 2;
+  if (hasTech('deep_learning')) trainMult *= 1.7;
+  if (hasTech('transformers')) trainMult *= 2.3;
+  if (hasTech('moe')) trainMult *= 2.5;
+  if (hasTech('curriculum')) trainMult *= 3;
+  if (hasTech('agi_core')) trainMult *= 5;
+  if (hasTech('singularity')) trainMult *= 10;
+  if (hasTech('automl')) { codeMult *= 2; researchMult *= 1.5; questSpeed *= 1.35; }
+  if (hasTech('vector_db')) questSpeed *= 1.25;
+  if (hasTech('agents')) questSpeed *= 1.6;
+  if (hasTech('mlops')) apiMult *= 1.6;
+  if (hasTech('quantization')) apiMult *= 1.5;
+  if (hasTech('edge_ai')) apiMult *= 1.35;
+  if (hasTech('rlhf')) apiMult *= 1.35;
+  if (hasTech('multimodal')) apiMult *= 2;
+  if (hasTech('singularity')) apiMult *= 5;
+  if (hasTech('nlp')) pvpAtk *= 1.08;
+  if (hasTech('vision')) pvpAtk *= 1.08;
+  if (hasTech('audio')) pvpAtk *= 1.05;
+  if (hasTech('edge_ai')) pvpAtk *= 1.12;
+  if (hasTech('agents')) pvpAtk *= 1.2;
+  if (hasTech('agi_core')) pvpAtk *= 1.5;
+  if (hasTech('security')) { pvpDef *= 1.25; eventShield += 0.35; }
+  if (hasTech('alignment')) { pvpDef *= 1.35; eventShield += 0.35; }
+  if (hasTech('distributed')) pvpDef *= 1.2;
+
+  // Shop boosts
+  dataMult *= getBoostMult('dataMult');
+  trainMult *= getBoostMult('trainMult');
+  codeMult *= getBoostMult('codeMult');
+  researchMult *= getBoostMult('researchMult');
+
+  const officeIncomeMult = 1 + (state.office - 1) * 0.18;
+  const serverTrainingBoost = hasTech('distributed') ? 1.7 : 1;
+  const compute = state.gpu * (1 + state.servers * 0.25 * serverTrainingBoost) * (hasTech('gpu_kernels') ? 1.5 : 1);
+  const trainPower = compute * trainMult;
+  const internEfficiency = hasTech('automl') ? 2 : 1;
+
+  const dataPerSec = state.interns * 0.8 * dataMult * internEfficiency + state.servers * 0.15 * dataMult;
+  const codePerSec = state.interns * 0.12 * codeMult * internEfficiency;
+  const researchPerSec = state.interns * 0.025 * researchMult + state.servers * 0.015 * researchMult;
+  const apiPerSec = state.model >= 30 ? state.servers * Math.sqrt(state.model) * 0.45 * apiMult * officeIncomeMult : 0;
+  const wagesPerSec = state.interns * 0.7 * Math.pow(0.94, state.office - 1);
+  const maintenancePerSec = state.servers * 0.12;
+  const netIncome = apiPerSec - wagesPerSec - maintenancePerSec;
+
+  const clickCode = (2 + state.office * 0.5) * codeMult;
+  const clickData = (8 + state.office * 2) * dataMult;
+
+  const trainDataCost = Math.floor(20 + Math.sqrt(state.model + 1) * 5);
+  const trainMoneyCost = Math.floor(5 + trainDataCost * 0.15);
+  const trainDuration = clamp(14 - Math.log2(compute + 1) * 1.3, 3, 30);
+  const trainReward = Math.floor((12 + trainPower * 8) * (1 + state.rep * 0.01));
+  const maxInterns = 2 + state.office * 3;
+
+  const pvpPower = Math.floor((state.model + 1) * (1 + state.gpu * 0.04 + state.servers * 0.06) * pvpAtk + state.rep * 5);
+  const pvpDefense = Math.floor(pvpPower * pvpDef);
+
+  return {
+    dataMult, trainMult, codeMult, researchMult, apiMult, officeIncomeMult,
+    compute, trainPower, dataPerSec, codePerSec, researchPerSec,
+    apiPerSec, wagesPerSec, maintenancePerSec, netIncome,
+    clickCode, clickData, trainDataCost, trainMoneyCost, trainDuration, trainReward,
+    maxInterns, questSpeed, pvpPower, pvpDefense, eventShield
+  };
+}
+
+// ============ LOGGING ============
+function log(text, type = 'info') {
+  state.logs.unshift({ time: new Date().toLocaleTimeString(), text, type });
+  if (state.logs.length > 50) state.logs.pop();
+  renderLog();
+}
+
+function toast(text, type = 'info') {
+  const container = $('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = text;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .3s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
+
+// ============ ACTIONS ============
+function writeCode() {
+  const s = getStats();
+  state.model += s.clickCode;
+  state.research += 0.4 * s.researchMult;
+  log(`💻 +${s.clickCode.toFixed(1)} модели.`, 'info');
+  render();
+}
+
+function collectData() {
+  const s = getStats();
+  state.data += s.clickData;
+  log(`📊 +${s.clickData.toFixed(1)} данных.`, 'info');
+  render();
+}
+
+function doResearch() {
+  if (now() < state.researchCooldownUntil) {
+    log('🔬 Исследование ещё готовится.', 'warning');
+    return;
+  }
+  const s = getStats();
+  const gain = (3 + state.interns * 0.2) * s.researchMult;
+  state.research += gain;
+  state.researchCooldownUntil = now() + 1000;
+  log(`🔬 +${gain.toFixed(1)} науки.`, 'info');
+  render();
+}
+
+function trainModel() {
+  const s = getStats();
+  if (state.training) { log('🚀 Обучение уже запущено.', 'warning'); return; }
+  if (state.data < s.trainDataCost) { log(`❌ Нужно ${s.trainDataCost} данных.`, 'error'); return; }
+  if (state.money < s.trainMoneyCost) { log(`❌ Нужно $${s.trainMoneyCost}.`, 'error'); return; }
+
+  state.data -= s.trainDataCost;
+  state.money -= s.trainMoneyCost;
+  state.training = { start: now(), end: now() + s.trainDuration * 1000, reward: s.trainReward };
+  log(`🚀 Обучение запущено. +${s.trainReward} модели.`, 'success');
+  render();
+}
+
+function sellAPI() {
+  const s = getStats();
+  if (state.model < 30) { log('❌ Нужна модель от 30.', 'error'); return; }
+  if (now() < state.apiCooldownUntil) { log('🔌 API на кулдауне.', 'warning'); return; }
+
+  const clients = Math.max(1, Math.floor(Math.sqrt(state.model) * (1 + state.rep * 0.02) * (1 + state.servers * 0.2)));
+  const earn = Math.floor((clients * 8 + state.model * 0.08) * s.apiMult * s.officeIncomeMult);
+
+  state.users += clients;
+  state.money += earn;
+  state.rep += Math.max(1, Math.floor(clients / 10));
+  state.apiCooldownUntil = now() + 7000;
+  log(`💰 +$${fmt(earn)}, +${clients} клиентов.`, 'success');
+  render();
+}
+
+function watchAd() {
+  if (now() < state.adCooldownUntil) { log('🎬 Реклама на кулдауне.', 'warning'); return; }
+
+  // VK Bridge rewarded ad
+  if (vkBridgeReady) {
+    try {
+      VKBridge.send('VKWebAppShowNativeAds', { use_waterfall: true })
+        .then(() => {
+          giveAdReward();
+        })
+        .catch(() => {
+          giveAdReward(); // fallback
+        });
+      return;
+    } catch (e) {
+      console.warn('Ad failed:', e);
+    }
+  }
+
+  giveAdReward();
+}
+
+function giveAdReward() {
+  const s = getStats();
+  const bonusMoney = Math.floor(300 + state.model * 1.5 + s.apiPerSec * 45);
+  const bonusData = Math.floor(s.clickData * 8);
+  state.money += bonusMoney;
+  state.data += bonusData;
+  state.adCooldownUntil = now() + 60000;
+  log(`🎬 Бонус: +$${fmt(bonusMoney)}, +${fmt(bonusData)} данных.`, 'success');
+  toast('🎬 Рекламный бонус получен!', 'success');
+  render();
+}
+
+function watchAdForDoubleDaily() {
+  if (state.dailyClaimedToday) {
+    toast('Сначала получи основную награду', 'warning');
+    return;
+  }
+  if (now() < state.adCooldownUntil) {
+    toast('Реклама на кулдауне', 'warning');
+    return;
+  }
+
+  if (vkBridgeReady) {
+    try {
+      VKBridge.send('VKWebAppShowNativeAds', { use_waterfall: true })
+        .then(() => {
+          state.adCooldownUntil = now() + 30000;
+          state._doubleDaily = true;
+          toast('🎬 x2 активирован! Получи награду.', 'success');
+          render();
+        })
+        .catch(() => {
+          state._doubleDaily = true;
+          toast('x2 активирован!', 'success');
+          render();
+        });
+      return;
+    } catch (e) {}
+  }
+
+  state._doubleDaily = true;
+  toast('x2 активирован!', 'success');
+  render();
+}
+
+function buyGPU() {
+  if (state.money < state.gpuCost) { log('❌ Не хватает денег.', 'error'); return; }
+  state.money -= state.gpuCost;
+  state.gpu += 1;
+  state.gpuCost = Math.floor(state.gpuCost * 1.55);
+  log(`🖥️ GPU: ${state.gpu}.`, 'success');
+  render();
+}
+
+function hireIntern() {
+  const s = getStats();
+  if (state.interns >= s.maxInterns) { log('🏢 Лимит стажёров.', 'warning'); return; }
+  if (state.money < state.internCost) { log('❌ Не хватает денег.', 'error'); return; }
+  state.money -= state.internCost;
+  state.interns += 1;
+  state.internCost = Math.floor(state.internCost * 1.38);
+  log(`👨‍💻 Стажёры: ${state.interns}.`, 'success');
+  render();
+}
+
+function buyServer() {
+  if (state.money < state.serverCost) { log('❌ Не хватает денег.', 'error'); return; }
+  state.money -= state.serverCost;
+  state.servers += 1;
+  state.serverCost = Math.floor(state.serverCost * 1.65);
+  log(`🖧 Серверы: ${state.servers}.`, 'success');
+  render();
+}
+
+function upgradeOffice() {
+  if (state.money < state.officeCost) { log('❌ Не хватает денег.', 'error'); return; }
+  state.money -= state.officeCost;
+  state.office += 1;
+  state.officeCost = Math.floor(state.officeCost * 2.35);
+  log(`🏢 Офис: уровень ${state.office}.`, 'success');
+  render();
+}
+
+function unlockResearch(id) {
+  const tech = researchList.find(x => x.id === id);
+  if (!tech || hasTech(id)) return;
+  const missing = tech.req.filter(r => !hasTech(r));
+  if (missing.length) { log('❌ Нужны prerequisites.', 'error'); return; }
+  if (state.research < tech.cost) { log(`❌ Нужно ${tech.cost} науки.`, 'error'); return; }
+
+  state.research -= tech.cost;
+  state.unlocked.push(id);
+  log(`🧬 Изучено: ${tech.name}.`, 'success');
+  showModal('🧬 Новое исследование', `${tech.name}\n\n${tech.desc}`);
+  render();
+}
+
+// ============ QUESTS ============
+function generateQuestOffers() {
+  const available = questTemplates.filter(q => {
+    if (state.office < q.req.office) return false;
+    if (q.req.tech && !hasTech(q.req.tech)) return false;
+    if (state.model < q.req.model * 0.55) return false;
+    return true;
+  });
+  const pool = available.length ? available : [questTemplates[0]];
+  const offers = [];
+  while (offers.length < 3) {
+    const base = pool[rand(0, pool.length - 1)];
+    const scale = 1 + state.rep * 0.01 + (state.office - 1) * 0.08;
+    offers.push({
+      uid: base.id + '_' + now() + '_' + Math.random().toString(16).slice(2),
+      templateId: base.id,
+      title: base.title,
+      desc: base.desc,
+      req: JSON.parse(JSON.stringify(base.req)),
+      duration: base.duration,
+      reward: {
+        money: Math.floor(base.reward.money * scale),
+        research: Math.floor(base.reward.research * scale),
+        rep: Math.floor(base.reward.rep * scale)
+      }
+    });
+  }
+  state.questOffers = offers;
+  state.nextQuestRefresh = now() + 30000;
+}
+
+function refreshQuests(manual = false) {
+  if (manual && now() < state.nextQuestRefresh) {
+    log('🔄 Контракты ещё обновляются.', 'warning');
+    return;
+  }
+  generateQuestOffers();
+  log('📦 Контракты обновлены.', 'info');
+  render();
+}
+
+function acceptQuest(uid) {
+  if (state.activeQuests.length >= 3) { log('❌ Максимум 3 квеста.', 'error'); return; }
+  const index = state.questOffers.findIndex(q => q.uid === uid);
+  if (index === -1) return;
+  const quest = state.questOffers[index];
+  const s = getStats();
+  if (state.model < quest.req.model) { log(`❌ Нужна модель ${quest.req.model}.`, 'error'); return; }
+  if (state.data < quest.req.data) { log(`❌ Нужно ${quest.req.data} данных.`, 'error'); return; }
+
+  state.data -= quest.req.data;
+  const durationMs = quest.duration * 1000 / (s.questSpeed + state.interns * 0.05);
+  state.activeQuests.push({ ...quest, started: now(), end: now() + durationMs });
+  state.questOffers.splice(index, 1);
+  log(`📦 Принят: ${quest.title}.`, 'success');
+  render();
+}
+
+function completeQuest(uid) {
+  const index = state.activeQuests.findIndex(q => q.uid === uid);
+  if (index === -1) return;
+  const quest = state.activeQuests[index];
+  if (now() < quest.end) { log('⏳ Ещё выполняется.', 'warning'); return; }
+
+  state.money += quest.reward.money || 0;
+  state.research += quest.reward.research || 0;
+  state.rep += quest.reward.rep || 0;
+  state.activeQuests.splice(index, 1);
+  log(`✅ Выполнен: ${quest.title}.`, 'success');
+  toast(`✅ Квест выполнен!`, 'success');
+  render();
+}
+
+// ============ PVP ============
+function findRival() {
+  if (state.model < 150) { log('❌ Нужна модель от 150.', 'error'); return; }
+  const s = getStats();
+  const names = ['NeuroFox', 'TensorWolf', 'ByteMage', 'GradientKing', 'VectorSamurai', 'QuantumCat', 'PromptDemon', 'DataBaron', 'NeuralKnight', 'CloudDragon'];
+  const power = Math.floor(s.pvpPower * (0.75 + Math.random() * 0.65));
+  const reward = Math.floor(500 + state.pvpRating * 0.8 + power * 0.4);
+  state.rival = {
+    name: names[rand(0, names.length - 1)],
+    power,
+    rating: Math.floor(state.pvpRating + rand(-80, 100)),
+    reward
+  };
+  log(`⚔️ Соперник: ${state.rival.name}, сила ${fmt(power)}.`, 'info');
+  render();
+}
+
+function attackRival() {
+  if (!state.rival) { log('❌ Сначала найди соперника.', 'error'); return; }
+  if (now() < state.pvpCooldownUntil) { log('⚔️ PvP на кулдауне.', 'warning'); return; }
+
+  const s = getStats();
+  const enemy = state.rival;
+  const chance = clamp(0.5 + (s.pvpPower - enemy.power) / (s.pvpPower + enemy.power) * 0.7, 0.15, 0.85);
+  const win = Math.random() < chance;
+
+  if (win) {
+    state.money += enemy.reward;
+    state.rep += 3;
+    state.pvpRating += 25;
+    state.pvpWins += 1;
+    log(`🏆 Победа над ${enemy.name}!`, 'success');
+    toast(`🏆 Победа! +$${fmt(enemy.reward)}`, 'success');
+  } else {
+    state.pvpRating = Math.max(0, state.pvpRating - 12);
+    state.pvpLosses += 1;
+    state.data *= 0.97;
+    log(`💥 Поражение от ${enemy.name}.`, 'error');
+    toast(`💥 Поражение`, 'error');
+  }
+
+  state.rival = null;
+  state.pvpCooldownUntil = now() + 20000;
+  render();
+}
+
+// ============ EVENTS ============
+const events = [
+  { title: '💸 Венчурные инвестиции', positive: true, desc: 'Инвестор поверил в стартап.', apply: () => { const g = Math.floor(1000 + state.model * 2 + state.rep * 50); state.money += g; return `+$${fmt(g)}.`; } },
+  { title: '🎉 Виральный успех', positive: true, desc: 'ИИ стал популярным.', apply: () => { const r = 5 + Math.floor(state.rep * 0.2); const c = 10 + Math.floor(Math.sqrt(state.model + 1)); state.rep += r; state.users += c; return `+${r} репутации, +${c} клиентов.`; } },
+  { title: '🏆 Научный грант', positive: true, desc: 'Получен грант.', apply: () => { const g = 25 + state.office * 8; state.research += g; return `+${g} науки.`; } },
+  { title: '📊 Новый источник данных', positive: true, desc: 'Партнёр открыл датасет.', apply: () => { const g = Math.floor(100 + state.model * 0.5 + state.servers * 50); state.data += g; return `+${fmt(g)} данных.`; } },
+  { title: '🕵️ Хакерская атака', positive: false, desc: 'Попытка кражи данных.', apply: () => { const s = getStats(); if (Math.random() < s.eventShield) return 'Атака отражена.'; const l = Math.floor(state.data * 0.18); state.data -= l; return `-${fmt(l)} данных.`; } },
+  { title: '🔥 Перегрев серверов', positive: false, desc: 'Инфраструктура не выдержала.', apply: () => { const s = getStats(); if (state.servers <= 0) return 'Серверов нет.'; if (Math.random() < s.eventShield * 0.7) return 'MLOps предотвратил.'; const c = Math.floor(300 + state.servers * 250); state.money -= c; return `-$${fmt(c)}.`; } },
+  { title: '📰 СМИ о тебе', positive: true, desc: 'Статья в издании.', apply: () => { const g = 4 + state.office * 2; state.rep += g; return `+${g} репутации.`; } }
+];
+
+function triggerEvent() {
+  const s = getStats();
+  let pool = events;
+  if (s.eventShield > 0.5) pool = events.filter(e => e.positive || Math.random() > 0.35);
+  const event = pool[rand(0, pool.length - 1)];
+  const result = event.apply();
+  state.nextEventAt = now() + rand(45000, 75000);
+
+  $('eventTitle').textContent = event.title;
+  $('eventDesc').textContent = event.desc + ' ' + result;
+  $('eventBanner').classList.add('active');
+  setTimeout(() => $('eventBanner').classList.remove('active'), 9000);
+
+  log(`${event.title}: ${result}`, event.positive ? 'success' : 'warning');
+  toast(event.title, event.positive ? 'success' : 'warning');
+}
+
+// ============ EPOCH & ACHIEVEMENTS ============
+function checkEpoch() {
+  let current = 0;
+  for (let i = 0; i < epochs.length; i++) if (state.model >= epochs[i].need) current = i;
+  if (current > state.epoch) {
+    state.epoch = current;
+    log(`🎉 Новая эпоха: ${epochs[current].name}.`, 'success');
+    showModal('🎉 Новая эпоха', `Ты достиг:\n\n${epochs[current].name}`);
+    toast(`🎉 ${epochs[current].name}`, 'success');
+  }
+}
+
+function checkAchievements() {
+  for (const a of achievementsList) {
+    if (!state.achievements.includes(a.id) && a.check()) {
+      state.achievements.push(a.id);
+      log(`🏆 ${a.name}`, 'success');
+      toast(`🏆 ${a.name}`, 'success');
+    }
+  }
+}
+
+// ============ DAILY REWARDS ============
+function checkDailyLogin() {
+  const today = new Date().toDateString();
+  if (state.lastLoginDate === today) return;
+
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (state.lastLoginDate === yesterday) {
+    state.loginStreak += 1;
+  } else {
+    state.loginStreak = 1;
+  }
+  state.lastLoginDate = today;
+  state.dailyClaimedToday = false;
+
+  if (state.loginStreak > 1) {
+    toast(`🔥 Серия: ${state.loginStreak} дней!`, 'success');
+  }
+}
+
+function claimDailyReward() {
+  if (state.dailyClaimedToday) {
+    toast('Награда уже получена сегодня', 'warning');
+    return;
+  }
+
+  const dayIndex = ((state.loginStreak - 1) % 7);
+  const reward = dailyRewards[dayIndex];
+
+  let amount = reward.amount;
+  if (state._doubleDaily) {
+    amount *= 2;
+    state._doubleDaily = false;
+    toast('🎬 x2 бонус применён!', 'success');
+  }
+
+  switch (reward.icon) {
+    case '💵': state.money += amount; break;
+    case '📊': state.data += amount; break;
+    case '🔬': state.research += amount; break;
+    case '💎':
+      state.money += amount;
+      // Буст на день 7
+      state.boosts['boost_code'] = now() + 3600000;
+      state.boosts['boost_data'] = now() + 3600000;
+      break;
+  }
+
+  state.dailyClaimedToday = true;
+  log(`🎁 День ${state.loginStreak}: +${reward.label}${state._doubleDaily ? ' (x2)' : ''}`, 'success');
+  toast(`🎁 ${reward.label} получено!`, 'success');
+  render();
+}
+
+// ============ SHOP ============
+function buyShopItem(id) {
+  const item = shopItems.find(x => x.id === id);
+  if (!item) return;
+  if (state.money < item.price) {
+    log('❌ Не хватает денег.', 'error');
+    return;
+  }
+
+  if (item.instant) {
+    state.money -= item.price;
+    item.effect();
+    log(`💎 Куплено: ${item.name}`, 'success');
+    toast(`💎 ${item.name}`, 'success');
+  } else {
+    if (state.boosts[id] && state.boosts[id] > now()) {
+      // Продлеваем
+      state.boosts[id] += item.duration * 1000;
+    } else {
+      state.boosts[id] = now() + item.duration * 1000;
+    }
+    state.money -= item.price;
+    log(`💎 Активирован: ${item.name}`, 'success');
+    toast(`💎 ${item.name}`, 'success');
+  }
+  render();
+}
+
+// ============ LEADERBOARD ============
+function generateLeaderboard() {
+  const bots = [
+    { name: 'NeuroFox', model: 50000, avatar: '🦊' },
+    { name: 'TensorWolf', model: 35000, avatar: '🐺' },
+    { name: 'ByteMage', model: 28000, avatar: '🧙' },
+    { name: 'GradientKing', model: 22000, avatar: '👑' },
+    { name: 'VectorSamurai', model: 18000, avatar: '🥷' },
+    { name: 'QuantumCat', model: 14000, avatar: '🐱' },
+    { name: 'PromptDemon', model: 11000, avatar: '😈' },
+    { name: 'DataBaron', model: 8500, avatar: '🎩' },
+    { name: 'NeuralKnight', model: 6000, avatar: '🛡️' },
+    { name: 'CloudDragon', model: 4500, avatar: '🐉' },
+    { name: 'AIHunter', model: 3200, avatar: '🏹' },
+    { name: 'CodeNinja', model: 2400, avatar: '🥷' },
+    { name: 'MLWizard', model: 1800, avatar: '🧙‍♂️' },
+    { name: 'DeepMaster', model: 1200, avatar: '🎓' },
+    { name: 'DataMiner', model: 800, avatar: '⛏️' }
+  ];
+
+  const me = { name: 'Ты', model: state.model, avatar: '🤖', isMe: true };
+  const all = [...bots, me].sort((a, b) => b.model - a.model);
+  return all.slice(0, 15);
+}
+
+// ============ TUTORIAL ============
+function startTutorial() {
+  if (state.tutorialDone) return;
+  state.tutorialStep = 0;
+  $('tutorial').classList.add('active');
+  renderTutorial();
+}
+
+function renderTutorial() {
+  const step = tutorialSteps[state.tutorialStep];
+  if (!step) {
+    finishTutorial();
+    return;
+  }
+
+  $('tutorialStepNum').textContent = `Шаг ${state.tutorialStep + 1} из ${tutorialSteps.length}`;
+  $('tutorialTitle').textContent = step.title;
+  $('tutorialText').textContent = step.text;
+  $('tutorialBar').style.width = ((state.tutorialStep + 1) / tutorialSteps.length * 100) + '%';
+
+  // Подсветка
+  document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+  if (step.highlight) {
+    const navItem = document.querySelector(`[data-tab="${step.highlight}"]`);
+    if (navItem) navItem.classList.add('highlight');
+  }
+
+  if (step.action) step.action();
+
+  const isLast = state.tutorialStep === tutorialSteps.length - 1;
+  $('tutorialNextBtn').textContent = isLast ? 'Начать игру' : 'Далее';
+}
+
+function nextTutorialStep() {
+  state.tutorialStep++;
+  if (state.tutorialStep >= tutorialSteps.length) {
+    finishTutorial();
+  } else {
+    renderTutorial();
+  }
+}
+
+function skipTutorial() {
+  finishTutorial();
+}
+
+function finishTutorial() {
+  state.tutorialDone = true;
+  state.tutorialStep = tutorialSteps.length;
+  $('tutorial').classList.remove('active');
+  document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+  switchPage('home');
+  log('🎓 Обучение завершено.', 'success');
+  saveGame();
+}
+
+// ============ NAVIGATION ============
+const pageTitles = {
+  home: '🏠 Главная',
+  lab: '🧪 Лаборатория',
+  research: '🧬 Исследования',
+  quests: '📦 Квесты',
+  pvp: '⚔️ PvP Арена',
+  leaders: '🏆 Лидеры',
+  daily: '🎁 Ежедневные',
+  shop: '💎 Магазин',
+  achievements: '🎖️ Достижения',
+  log: '📜 Журнал'
+};
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+  const page = $('page-' + name);
+  if (page) page.classList.add('active');
+
+  const navItem = document.querySelector(`[data-tab="${name}"]`);
+  if (navItem) navItem.classList.add('active');
+
+  $('pageTitle').textContent = pageTitles[name] || name;
+  render();
+}
+
+// ============ MODAL ============
+function showModal(title, text, actionLabel = 'OK', action = null) {
+  $('modalTitle').textContent = title;
+  $('modalText').textContent = text;
+  const btn = $('modalAction');
+  btn.textContent = actionLabel;
+  btn.onclick = () => {
+    if (typeof action === 'function') action();
+    closeModal();
+  };
+  $('modal').classList.add('active');
+}
+
+function closeModal() {
+  $('modal').classList.remove('active');
+}
+
+// ============ MAIN TICK ============
+function tick() {
+  const t = now();
+  const dt = clamp((t - state.lastTick) / 1000, 0, 7200);
+  state.lastTick = t;
+
+  const s = getStats();
+
+  state.data += s.dataPerSec * dt;
+  state.model += s.codePerSec * dt;
+  state.research += s.researchPerSec * dt;
+  state.money += s.netIncome * dt;
+
+  if (state.money < 0) state.money = 0;
+  if (state.data < 0) state.data = 0;
+
+  // Training completion
+if (state.training && t >= state.training.end) {
+  const reward = state.training.reward;
+  state.model += reward;
+  state.research += 3 + state.gpu * 0.3;
+  state.training = null;
+  log(`✅ Обучение завершено: +${fmt(reward)} модели.`, 'success');
+  toast('✅ Обучение завершено!', 'success');
+}
+
+  // Boosts cleanup
+  if (cleanExpiredBoosts()) {
+    log('⏰ Бусты закончились.', 'info');
+  }
+
+  // Quest refresh
+  if (!state.questOffers.length || t >= state.nextQuestRefresh) {
+    generateQuestOffers();
+  }
+
+  // Events
+  if (t >= state.nextEventAt) {
+    triggerEvent();
+  }
+
+  checkEpoch();
+  checkAchievements();
+  render();
+}
+
+// ============ RENDER ============
+function render() {
+  const s = getStats();
+
+  $('money').textContent = fmt(state.money);
+  $('data').textContent = fmt(state.data);
+  $('model').textContent = fmt(state.model);
+  $('research').textContent = fmt(state.research);
+  $('rep').textContent = fmt(state.rep);
+  $('users').textContent = fmt(state.users);
+  $('netIncome').textContent = fmt(s.netIncome);
+
+  const epoch = epochs[state.epoch];
+  const next = epochs[state.epoch + 1];
+  $('epochName').textContent = `Эпоха: ${epoch.name}`;
+
+  if (next) {
+    const progress = clamp((state.model - epoch.need) / (next.need - epoch.need) * 100, 0, 100);
+    $('epochBar').style.width = progress + '%';
+    $('epochHint').textContent = `До следующей: ${fmt(next.need - state.model)} модели`;
+  } else {
+    $('epochBar').style.width = '100%';
+    $('epochHint').textContent = 'Максимальная эпоха';
+  }
+
+  // Render active page
+  const activePage = document.querySelector('.page.active');
+  if (activePage) {
+    const id = activePage.id.replace('page-', '');
+    switch (id) {
+      case 'home': renderHome(); break;
+      case 'lab': renderLab(); renderBuildings(); break;
+      case 'research': renderResearch(); break;
+      case 'quests': renderQuests(); break;
+      case 'pvp': renderPvp(); break;
+      case 'leaders': renderLeaderboard(); break;
+      case 'daily': renderDaily(); break;
+      case 'shop': renderShop(); break;
+      case 'achievements': renderAchievements(); break;
+      case 'log': renderLog(); break;
+    }
+  }
+}
+
+function renderHome() {
+  const s = getStats();
+  $('homeStatus').innerHTML = `
+    <p><b>Эпоха:</b> ${epochs[state.epoch].name}</p>
+    <p><b>GPU:</b> ${state.gpu} · <b>Серверы:</b> ${state.servers} · <b>Офис:</b> ур. ${state.office}</p>
+    <p><b>Стажёры:</b> ${state.interns}/${s.maxInterns}</p>
+    <p><b>Исследований:</b> ${state.unlocked.length}/${researchList.length}</p>
+    <p><b>Достижений:</b> ${state.achievements.length}/${achievementsList.length}</p>
+    <p><b>PvP рейтинг:</b> ${state.pvpRating} (${state.pvpWins}W / ${state.pvpLosses}L)</p>
+  `;
+  $('homeTip').textContent = tips[Math.floor(now() / 86400000) % tips.length];
+}
+
+function renderLab() {
+  const s = getStats();
+  const trainDisabled = state.training || state.data < s.trainDataCost || state.money < s.trainMoneyCost;
+  const apiDisabled = state.model < 30 || now() < state.apiCooldownUntil;
+  const researchDisabled = now() < state.researchCooldownUntil;
+  const adDisabled = now() < state.adCooldownUntil;
+
+  $('labActions').innerHTML = `
+    <button class="btn" onclick="writeCode()"><span>💻 Написать код</span><small>+${s.clickCode.toFixed(1)} модели</small></button>
+    <button class="btn" onclick="collectData()"><span>📊 Собрать данные</span><small>+${s.clickData.toFixed(1)} данных</small></button>
+    <button class="btn green" onclick="trainModel()" ${trainDisabled ? 'disabled' : ''}><span>🚀 Обучить модель</span><small>-${s.trainDataCost} данных / $${s.trainMoneyCost}</small></button>
+    <button class="btn green" onclick="sellAPI()" ${apiDisabled ? 'disabled' : ''}><span>🔌 Продать API</span><small>${state.model < 30 ? 'нужна модель 30' : 'раз в 7 сек'}</small></button>
+    <button class="btn purple" onclick="doResearch()" ${researchDisabled ? 'disabled' : ''}><span>🔬 Исследовать</span><small>+наука</small></button>
+    <button class="btn orange" onclick="watchAd()" ${adDisabled ? 'disabled' : ''}><span>🎬 Реклама</span><small>раз в 60 сек</small></button>
+  `;
+
+  if (state.training) {
+    const total = state.training.end - state.training.start;
+    const done = clamp((now() - state.training.start) / total * 100, 0, 100);
+    const left = Math.ceil((state.training.end - now()) / 1000);
+    $('trainingBox').innerHTML = `
+      <div class="info-card">
+        <h3>🚀 Идёт обучение</h3>
+        <p>Осталось: ${left} сек.</p>
+        <p>Прирост: +${fmt(state.training.reward)} модели.</p>
+        <div class="progress" style="background:#E6E9ED;"><div style="width:${done}%; background:var(--vk-green);"></div></div>
+      </div>
+    `;
+  } else {
+    $('trainingBox').innerHTML = `
+      <div class="info-card">
+        <h3>🚀 Обучение модели</h3>
+        <p>Сила обучения: ${s.trainPower.toFixed(1)}</p>
+        <p>Длительность: ${s.trainDuration.toFixed(1)} сек.</p>
+        <p>Стоимость: ${s.trainDataCost} данных и $${s.trainMoneyCost}</p>
+      </div>
+    `;
+  }
+}
+
+function renderBuildings() {
+  const s = getStats();
+  $('buildings').innerHTML = `
+    <div class="info-card" style="margin-bottom:10px;">
+      <h3>🖥️ GPU</h3>
+      <p><b>Зачем:</b> ускоряет обучение и PvP.</p>
+      <p>Сейчас: ${state.gpu} · Мощность: ${s.compute.toFixed(1)}</p>
+      <button class="btn" onclick="buyGPU()" ${state.money < state.gpuCost ? 'disabled' : ''}><span>Купить GPU</span><small>$${fmt(state.gpuCost)}</small></button>
+    </div>
+    <div class="info-card" style="margin-bottom:10px;">
+      <h3>👨‍💻 Стажёры</h3>
+      <p><b>Зачем:</b> авто-данные, код, наука.</p>
+      <p>Сейчас: ${state.interns}/${s.maxInterns}</p>
+      <p>Автоданные: +${s.dataPerSec.toFixed(1)}/сек · Зарплаты: -$${s.wagesPerSec.toFixed(1)}/сек</p>
+      <button class="btn" onclick="hireIntern()" ${state.money < state.internCost || state.interns >= s.maxInterns ? 'disabled' : ''}><span>Нанять</span><small>$${fmt(state.internCost)}</small></button>
+    </div>
+    <div class="info-card" style="margin-bottom:10px;">
+      <h3>🖧 Серверы</h3>
+      <p><b>Зачем:</b> пассивный API-доход, защита.</p>
+      <p>Сейчас: ${state.servers}</p>
+      <p>API: +$${s.apiPerSec.toFixed(1)}/сек · Обслуж.: -$${s.maintenancePerSec.toFixed(1)}/сек</p>
+      <button class="btn" onclick="buyServer()" ${state.money < state.serverCost ? 'disabled' : ''}><span>Купить</span><small>$${fmt(state.serverCost)}</small></button>
+    </div>
+    <div class="info-card">
+      <h3>🏢 Офис</h3>
+      <p><b>Зачем:</b> лимит стажёров, доход, контракты.</p>
+      <p>Уровень: ${state.office} · Лимит: ${s.maxInterns} · Множитель: x${s.officeIncomeMult.toFixed(2)}</p>
+      <button class="btn" onclick="upgradeOffice()" ${state.money < state.officeCost ? 'disabled' : ''}><span>Улучшить</span><small>$${fmt(state.officeCost)}</small></button>
+    </div>
+  `;
+}
+
+function renderResearch() {
+  $('researchTree').innerHTML = researchList.map(r => {
+    const unlocked = hasTech(r.id);
+    const missing = r.req.filter(x => !hasTech(x));
+    const canBuy = !unlocked && missing.length === 0 && state.research >= r.cost;
+    const available = !unlocked && missing.length === 0;
+    const locked = !unlocked && !available;
+
+    const reqNames = r.req.map(id => researchList.find(x => x.id === id)?.name || id);
+
+    return `
+      <div class="research ${unlocked ? 'unlocked' : ''} ${available ? 'available' : ''} ${locked ? 'locked' : ''}" ${available ? `onclick="unlockResearch('${r.id}')"` : ''}>
+        <div class="research-title">${unlocked ? '✅' : available ? '🔓' : '🔒'} ${r.name}</div>
+        <div class="research-desc">${r.desc}</div>
+        <div>
+          <span class="badge">Цена: ${r.cost}</span>
+          ${reqNames.length ? `<span class="badge orange">Нужно: ${reqNames.join(', ')}</span>` : ''}
+        </div>
+        ${!unlocked && available ? `<button class="btn" style="margin-top:10px; margin-bottom:0;" ${canBuy ? '' : 'disabled'}><span>Изучить</span><small>${state.research >= r.cost ? 'готово' : 'мало науки'}</small></button>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderQuests() {
+  const left = Math.max(0, Math.ceil((state.nextQuestRefresh - now()) / 1000));
+  $('questTimer').textContent = `Автообновление: ${left} сек.`;
+
+  if (!state.questOffers.length) {
+    $('questOffers').innerHTML = '<p style="color:var(--vk-muted);">Контрактов пока нет.</p>';
+  } else {
+    $('questOffers').innerHTML = state.questOffers.map(q => {
+      const canAccept = state.model >= q.req.model && state.data >= q.req.data && state.activeQuests.length < 3;
+      return `
+        <div class="quest">
+          <div class="quest-title">${q.title}</div>
+          <div class="quest-desc">${q.desc}</div>
+          <p><span class="badge">Модель: ${fmt(q.req.model)}</span><span class="badge">Данные: ${fmt(q.req.data)}</span><span class="badge">Офис: ${q.req.office}</span></p>
+          <p><span class="badge green">$${fmt(q.reward.money)}</span><span class="badge green">🔬 ${fmt(q.reward.research)}</span><span class="badge green">⭐ ${fmt(q.reward.rep)}</span></p>
+          <button class="btn" onclick="acceptQuest('${q.uid}')" ${canAccept ? '' : 'disabled'}><span>Принять</span><small>${q.duration} сек.</small></button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  if (!state.activeQuests.length) {
+    $('activeQuests').innerHTML = '<p style="color:var(--vk-muted);">Нет активных квестов.</p>';
+  } else {
+    $('activeQuests').innerHTML = state.activeQuests.map(q => {
+      const total = q.end - q.started;
+      const progress = clamp((now() - q.started) / total * 100, 0, 100);
+      const done = now() >= q.end;
+      const left = Math.max(0, Math.ceil((q.end - now()) / 1000));
+      return `
+        <div class="quest">
+          <div class="quest-title">${q.title}</div>
+          <div class="quest-desc">${done ? 'Готово к сдаче.' : `Осталось ${left} сек.`}</div>
+          <div class="progress" style="background:#E6E9ED;"><div style="width:${progress}%; background:${done ? 'var(--vk-green)' : 'var(--vk-blue)'};"></div></div>
+          <button class="btn green" style="margin-top:10px; margin-bottom:0;" onclick="completeQuest('${q.uid}')" ${done ? '' : 'disabled'}><span>Сдать</span><small>${done ? 'готово' : 'ожидание'}</small></button>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function renderPvp() {
+  const s = getStats();
+  const cooldown = Math.max(0, Math.ceil((state.pvpCooldownUntil - now()) / 1000));
+
+  let html = `
+    <div class="info-card">
+      <h3>Твоя AI-система</h3>
+      <p>Локальный PvP против ботов. Для реального PvP между игроками нужен backend.</p>
+      <p><span class="badge">Рейтинг: ${state.pvpRating}</span><span class="badge green">Победы: ${state.pvpWins}</span><span class="badge red">Поражения: ${state.pvpLosses}</span></p>
+      <p><span class="badge">Атака: ${fmt(s.pvpPower)}</span><span class="badge">Защита: ${fmt(s.pvpDefense)}</span></p>
+      <button class="btn" onclick="findRival()" ${state.model < 150 ? 'disabled' : ''}><span>🔎 Найти соперника</span><small>${state.model < 150 ? 'нужна модель 150' : 'подбор'}</small></button>
+    </div>
+  `;
+
+  if (state.rival) {
+    const r = state.rival;
+    const chance = clamp(0.5 + (s.pvpPower - r.power) / (s.pvpPower + r.power) * 0.7, 0.15, 0.85);
+    html += `
+      <div class="info-card" style="margin-top:12px;">
+        <h3>🤖 ${r.name}</h3>
+        <p><span class="badge">Сила: ${fmt(r.power)}</span><span class="badge">Рейтинг: ${r.rating}</span><span class="badge green">Награда: $${fmt(r.reward)}</span></p>
+        <p>Шанс победы: ${(chance * 100).toFixed(0)}%</p>
+        <button class="btn red" onclick="attackRival()" ${cooldown > 0 ? 'disabled' : ''}><span>⚔️ Атаковать</span><small>${cooldown > 0 ? cooldown + ' сек.' : 'бой'}</small></button>
+      </div>
+    `;
+  }
+
+  $('pvpBox').innerHTML = html;
+}
+
+function renderLeaderboard() {
+  const leaders = generateLeaderboard();
+  $('leaderboard').innerHTML = leaders.map((p, i) => `
+    <div class="leader-row ${p.isMe ? 'me' : ''}">
+      <div class="leader-rank">${i + 1}</div>
+      <div class="leader-avatar">${p.avatar}</div>
+      <div class="leader-info">
+        <div class="leader-name">${p.name}${p.isMe ? ' (ты)' : ''}</div>
+        <div class="leader-sub">Сила модели</div>
+      </div>
+      <div class="leader-score">${fmt(p.model)}</div>
+    </div>
+  `).join('');
+}
+
+function renderDaily() {
+  $('loginStreak').textContent = state.loginStreak;
+
+  const currentDayIndex = Math.max(0, state.loginStreak - 1) % 7;
+
+  $('dailyGrid').innerHTML = dailyRewards.map((r, i) => {
+    const claimed = state.dailyClaimedToday && i === currentDayIndex;
+    const isToday = !state.dailyClaimedToday && i === currentDayIndex;
+    const locked = i > currentDayIndex;
+
+    return `
+      <div class="daily-cell ${claimed ? 'claimed' : ''} ${isToday ? 'today' : ''} ${locked ? 'locked' : ''}">
+        <div class="daily-day">День ${r.day}</div>
+        <div class="daily-reward">${r.icon}</div>
+        <div>${r.label}</div>
+      </div>
+    `;
+  }).join('');
+
+  const btn = $('claimDailyBtn');
+  const hint = $('claimDailyHint');
+
+  if (state.dailyClaimedToday) {
+    btn.disabled = true;
+    hint.textContent = 'получено сегодня';
+  } else {
+    btn.disabled = false;
+    hint.textContent = state._doubleDaily ? 'x2 активен!' : 'доступно';
+  }
+}
+
+function renderShop() {
+  // Active boosts
+  const activeBoosts = [];
+  for (const id in state.boosts) {
+    if (state.boosts[id] > now()) {
+      const item = shopItems.find(x => x.id === id);
+      if (item) {
+        const left = Math.ceil((state.boosts[id] - now()) / 1000);
+        activeBoosts.push({ item, left });
+      }
+    }
+  }
+
+  if (activeBoosts.length) {
+    $('activeBoosts').innerHTML = activeBoosts.map(b => `
+      <div class="boost-active">
+        <span>${b.item.name}</span>
+        <span>⏱️ ${Math.floor(b.left / 60)}:${(b.left % 60).toString().padStart(2, '0')}</span>
+      </div>
+    `).join('');
+  } else {
+    $('activeBoosts').innerHTML = '<p style="color:var(--vk-muted); margin-bottom:12px;">Нет активных бустов.</p>';
+  }
+
+  $('shopGrid').innerHTML = shopItems.map(item => `
+    <div class="shop-item">
+      <h3>${item.name}</h3>
+      <p>${item.desc}</p>
+      <button class="btn gold" style="margin-top:8px; margin-bottom:0;" onclick="buyShopItem('${item.id}')" ${state.money < item.price ? 'disabled' : ''}>
+        <span>Купить</span>
+        <small>$${fmt(item.price)}</small>
+      </button>
+    </div>
+  `).join('');
+}
+
+function renderAchievements() {
+  $('achievements').innerHTML = achievementsList.map(a => {
+    const done = state.achievements.includes(a.id);
+    return `<span class="badge ${done ? 'green' : ''}" style="font-size:14px; padding:8px 11px; margin:4px;">${done ? '✅' : '⬜'} ${a.name}</span>`;
+  }).join('');
+}
+
+function renderLog() {
+  const el = $('log');
+  if (!el) return;
+  el.innerHTML = state.logs.map(x => `
+    <div class="log-entry ${x.type}"><b>${x.time}</b> — ${x.text}</div>
+  `).join('');
+}
+
+// ============ GAME START ============
+function startNewGame() {
+  localStorage.removeItem(SAVE_KEY);
+  state = defaultState();
+  generateQuestOffers();
+  launchGame(true);
+}
+
+function continueGame() {
+  state = loadGame();
+  if (!state.questOffers.length) generateQuestOffers();
+  launchGame(false);
+}
+
+function launchGame(isNew) {
+  $('splash').classList.add('hidden');
+  $('app').style.display = 'flex';
+
+  checkDailyLogin();
+
+  log('🎮 Архитектор ИИ v4 загружен.', 'info');
+
+  if (isNew || !state.tutorialDone) {
+    setTimeout(() => startTutorial(), 500);
+  } else {
+    switchPage('home');
+  }
+
+  render();
+}
+
+// ============ INIT ============
+window.addEventListener('beforeunload', saveGame);
+setInterval(tick, 1000);
+setInterval(saveGame, 10000);
+
+// Проверяем есть ли сохранение
+const hasSave = !!localStorage.getItem(SAVE_KEY);
+$('btnContinue').disabled = !hasSave;
+if (!hasSave) {
+  $('btnContinue').style.opacity = '0.5';
+}
+
+// Self-debug
+console.log('Архитектор ИИ v4 initialized');
+console.log('VK Bridge ready:', vkBridgeReady);
+console.log('Save exists:', hasSave);
+</script>
+
+</body>
+</html>

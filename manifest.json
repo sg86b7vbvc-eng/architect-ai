@@ -1,0 +1,10 @@
+{
+  "name": "Архитектор ИИ",
+  "description": "Создай свой искусственный интеллект от скрипта до сингулярности. Развивай стартап, исследуй технологии, побеждай в PvP.",
+  "icon": "/icon.png",
+  "icon_2x": "/icon_2x.png",
+  "orientation": "portrait",
+  "platforms": ["web", "mobile_web", "ios", "android"],
+  "screens": [],
+  "group_name": "Архитектор ИИ"
+}
